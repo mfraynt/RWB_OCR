@@ -45,7 +45,7 @@ Most importan part of the script is an OCR part, which is wrapped in a function 
 
 The following sequence of transformations is applied: 
 
-<div class="mermaid">
+```mermaid
 sequenceDiagram
     participant Alice
     participant Bob
@@ -57,4 +57,4 @@ sequenceDiagram
     John-->>Alice: Great!
     John->>Bob: How about you?
     Bob-->>John: Jolly good!
-</div>
+```
