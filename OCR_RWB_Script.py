@@ -20,8 +20,8 @@ def get_text(page):
     ver_lines = cv2.dilate(eroded_image, vertical_kernel, iterations=3)
 
     horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (np.array(img_bin).shape[0]//150, 1))
-    eroded_image1 = cv2.erode(img_bin, horizontal_kernel, iterations=5)
-    hor_lines = cv2.dilate(eroded_image1, horizontal_kernel, iterations=5)
+    eroded_image1 = cv2.erode(img_bin, horizontal_kernel, iterations=2) # Number of iterations can be adjusted
+    hor_lines = cv2.dilate(eroded_image1, horizontal_kernel, iterations=3)
 
     grid = cv2.addWeighted(hor_lines, 0.5, ver_lines, 0.5, 240)
     grid = cv2.dilate(grid, horizontal_kernel, iterations=1)
@@ -38,12 +38,15 @@ def get_text(page):
             image = cv2.rectangle(blank,(x,y),(x+w,y+h),(0,255,0),2)
             roi = img_bin[y:y+h, x:x+w]
         boxes.append([x, y, w, h])
-
+    #    cv2.rectangle(blank,(x,y),(x+w,y+h),(0,255,0),2) #Debug
+    #cv2.imshow('bl', blank) # Debug
+    #cv2.waitKey(0)
     if roi is None:
         return None
 
     out = pytesseract.image_to_string(roi, lang='rus')
     result = tokenizer.tokenize(out)
+    
     return result
 
 def cosine_similarity(a, b):
@@ -128,7 +131,7 @@ def get_receivers(rec_file):
     return t_receivers, receivers
 
 if __name__ == '__main__':
-    file = "rwb2.pdf"
+    file = "КИТАЙ 24.01.2023.pdf"
     rec_file = "receivers.xlsx"
     tokenizer = RegexpTokenizer(r'\w+')
     t_receivers, receivers = get_receivers(rec_file)
