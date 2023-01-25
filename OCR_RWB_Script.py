@@ -12,9 +12,8 @@ def get_text(page):
 
     gray = cv2.cvtColor(original, cv2.COLOR_BGR2GRAY)
 
-    threshl, img_bin = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-    img_bin = 255-img_bin
-
+    threshl, img_bin = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+    
     vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, np.array(img_bin).shape[1]//150))
     eroded_image = cv2.erode(img_bin, vertical_kernel, iterations=5)
     ver_lines = cv2.dilate(eroded_image, vertical_kernel, iterations=3)
