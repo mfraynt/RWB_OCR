@@ -33,7 +33,7 @@ def get_text(page):
     roi = None
     for contour in contours:
         x, y, w, h = cv2.boundingRect(contour)
-        if y > original.shape[0]/8 and y < original.shape[0]/5:
+        if y > original.shape[0]/8 and y < original.shape[0]/5 and w > original.shape[1]/3 and w < original.shape[1]/2 and h < original.shape[0]/11 and h > original.shape[0]/15:
             image = cv2.rectangle(blank,(x,y),(x+w,y+h),(0,255,0),2)
             roi = img_bin[y:y+h, x:x+w]
         boxes.append([x, y, w, h])
