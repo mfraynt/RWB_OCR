@@ -9,36 +9,40 @@ from PyPDF2 import PdfFileReader, PdfFileWriter
 def get_text(page):
     img = np.array(page)
     original = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-
+    
     gray = cv2.cvtColor(original, cv2.COLOR_BGR2GRAY)
 
     threshl, img_bin = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
-    
-    vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, np.array(img_bin).shape[1]//150))
-    eroded_image = cv2.erode(img_bin, vertical_kernel, iterations=5)
+
+    vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, np.array(img_bin).shape[0]//150))
+    eroded_image = cv2.erode(img_bin, vertical_kernel, iterations=3)
     ver_lines = cv2.dilate(eroded_image, vertical_kernel, iterations=3)
 
-    horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (np.array(img_bin).shape[0]//150, 1))
-    eroded_image1 = cv2.erode(img_bin, horizontal_kernel, iterations=2) # Number of iterations can be adjusted
+    horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (np.array(img_bin).shape[1]//150, 1))
+    eroded_image1 = cv2.erode(img_bin, horizontal_kernel, iterations=1) # Number of iterations can be adjusted
     hor_lines = cv2.dilate(eroded_image1, horizontal_kernel, iterations=3)
 
     grid = cv2.addWeighted(hor_lines, 0.5, ver_lines, 0.5, 240)
     grid = cv2.dilate(grid, horizontal_kernel, iterations=1)
     grid = cv2.dilate(grid, vertical_kernel, iterations=1)
-
-    contours, hierarchy = cv2.findContours(255-grid, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    grid = 255 - grid
+    
+    contours, hierarchy = cv2.findContours(grid, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     boxes = []
     blank = np.zeros(original.shape)
     
     roi = None
     for contour in contours:
         x, y, w, h = cv2.boundingRect(contour)
+        
         if y > original.shape[0]/8 and y < original.shape[0]/5 and w > original.shape[1]/3 and w < original.shape[1]/2 and h < original.shape[0]/11 and h > original.shape[0]/15:
+    #        print(y, x, original.shape[0], original.shape[1], w, h)
             image = cv2.rectangle(blank,(x,y),(x+w,y+h),(0,255,0),2)
             roi = img_bin[y:y+h, x:x+w]
         boxes.append([x, y, w, h])
-    #    cv2.rectangle(blank,(x,y),(x+w,y+h),(0,255,0),2) #Debug
-    #cv2.imshow('bl', blank) # Debug
+    #    if w > original.shape[1]/3 and w < original.shape[1]/2 and h < original.shape[0]/11 and h > original.shape[0]/15: #Debug
+    #        cv2.rectangle(original,(x,y),(x+w,y+h),(0,255,0),2) #Debug
+    #cv2.imshow('bl', original) # Debug 3 lines
     #cv2.waitKey(0)
     if roi is None:
         return None
@@ -121,7 +125,7 @@ def devide_file(file):
             writer.write(fp)    
 
 def get_receivers(rec_file):
-    receivers = pd.read_excel(rec_file)
+    receivers = pd.read_excel(rec_file, engine='openpyxl')
 
     # Tockenize list of receivers
     t_receivers = []
@@ -130,7 +134,7 @@ def get_receivers(rec_file):
     return t_receivers, receivers
 
 if __name__ == '__main__':
-    file = "КИТАЙ 24.01.2023.pdf"
+    file = "Мих-Сем 24.02.2023.pdf"
     rec_file = "receivers.xlsx"
     tokenizer = RegexpTokenizer(r'\w+')
     t_receivers, receivers = get_receivers(rec_file)
