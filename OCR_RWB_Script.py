@@ -6,12 +6,13 @@ import pytesseract
 from nltk.tokenize import RegexpTokenizer
 import pandas as pd
 from PyPDF2 import PdfReader, PdfWriter
+from time import perf_counter
+import re
 import tkinter as tk
 from tkinter import filedialog as fd
 from tkinter.messagebox import showinfo, showerror
 from tkinter import ttk
-from time import perf_counter
-import re
+import traceback
 
 def timeit(inner):
     def timeit_wrapper(*args, **kwargs):
@@ -77,7 +78,8 @@ def get_text(idx, page):
     gray = cv2.cvtColor(original, cv2.COLOR_BGR2GRAY)
 
     # Apply thresholding
-    threshl, img_bin = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+    #threshl, img_bin = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+    img_bin = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV,33,10)
 
     # Get vertical and horizontal lines of the grid with erosion and dilation
     ver_d_iter = int(spinbox1.get())
@@ -109,9 +111,9 @@ def get_text(idx, page):
     for contour in contours:
         x, y, w, h = cv2.boundingRect(contour)
         
-        if y > img.shape[0]/8 and y < img.shape[0]/5 and w > img.shape[1]/3 and w < img.shape[1]/2 and h < img.shape[0]/11 and h > img.shape[0]/15:
-    #        print(y, x, original.shape[0], original.shape[1], w, h)
-            image = cv2.rectangle(blank,(x,y),(x+w,y+h),(0,255,0),2)
+        if y > img.shape[0]/8 and y < img.shape[0]/5 and w > img.shape[1]/3 and w < img.shape[1]/2 and h < img.shape[0]/11 and h > img.shape[0]/16:
+            #print(y, x, original.shape[0], original.shape[1], w, h)
+            #image = cv2.rectangle(blank,(x,y),(x+w,y+h),(0,255,0),2)
             roi = img_bin[y:y+h, x:x+w]
         boxes.append([x, y, w, h])
         #if w > original.shape[1]/3 and w < original.shape[1]/2 and h < original.shape[0]/11 and h > original.shape[0]/15: #Debug
@@ -120,14 +122,24 @@ def get_text(idx, page):
     # For debugging
     if roi is None:
         if idx == 0:
-            cv2.imshow('bl', original) 
+            
+            cv2.imshow("BL", original) 
             cv2.waitKey(0)
-
+            
 
         return None
 
+#######################
+   # cv2.imshow('bl', roi) 
+   # cv2.waitKey(0)    
+##############################
+
     out = pytesseract.image_to_string(roi, lang='rus')
     result = tokenizer.tokenize(out)
+
+    #####################
+ #   print(result)
+    ##################
     
     return result
 
@@ -196,6 +208,11 @@ def find_best_match(result): # Result should be a tokenized output of OCR
 
 def solve(idx, page):
     result = get_text(idx, page)
+
+
+    if result is None and idx==0:
+        raise Exception('Change parameters')
+
     if result is None:
         return 'Not found...'
         
@@ -210,15 +227,18 @@ def get_page_ranges(file):
     current_operation.set(f"Getting page ranges {progress['value']:0.0f}%")
     root.update_idletasks()
     #######
+    rec = ''
     for idx, page in enumerate(images):
         result = solve(idx, page)
         n = images.index(page)
+        
         if result != 'Not found...':
             rec = result
         if rec in ranges.keys():
             ranges[rec].append(n)
         else:
             ranges[rec] = [n]
+        
         #######Progress bar and label activation####
         progress['value'] += 1 / len(images) * 100
         current_operation.set(f"Getting page ranges {progress['value']:0.0f}%")
@@ -259,13 +279,18 @@ def get_receivers(rec_file):
     return t_receivers, receivers
 
 def open_file_dialog():
+    global file
     file = fd.askopenfile(title="Select file for OCR").name
+    print(file)
+    
+def OCR():
     try:
         devide_file(file)
         all_good = tk.messagebox.showinfo("Result", "All good")
-    except Exception as err:            
-        err_box = tk.messagebox.showerror("Error", str(err))
-        
+    except Exception as err:   
+        err_box = tk.messagebox.showerror("Error", str(err) + traceback.format_exc())
+          
+
 if __name__ == "__main__":
     rec_file = os.path.dirname(__file__)+"\\receivers.xlsx"
     tokenizer = RegexpTokenizer(r'\w+')
@@ -296,7 +321,7 @@ if __name__ == "__main__":
     label2.grid(row=0, column=1, pady=5, padx=5)
 
     # Create the second Spinbox for integer input
-    spinbox2 = tk.Spinbox(root, from_=1, to=9, increment=1, width=10, textvariable=tk.DoubleVar(value=5))
+    spinbox2 = tk.Spinbox(root, from_=1, to=9, increment=1, width=10, textvariable=tk.DoubleVar(value=2))
     spinbox2.grid(row=1, column=1, pady=5, padx=5)
     #spinbox2.insert(tk.END, "2")
 
@@ -313,8 +338,12 @@ if __name__ == "__main__":
     spinbox4.grid(row=1, column=3, pady=5, padx=5)
 
     # Create a button in the center of the window
-    button = tk.Button(root, text="Open File", command=open_file_dialog)
-    button.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+    button1 = tk.Button(root, text="Open File", command=open_file_dialog)
+    button1.place(relx=0.25, rely=0.5, anchor=tk.CENTER)
+
+    # Create a button in the center of the window
+    button2 = tk.Button(root, text="OCR", command=OCR)
+    button2.place(relx=0.75, rely=0.5, anchor=tk.CENTER)
 
     # Create a label for the current operation
     current_operation = tk.StringVar()
