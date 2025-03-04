@@ -49,7 +49,7 @@ The following sequence of transformations is applied:
 
 ```mermaid
 flowchart LR
-initial[pdf2image] --> NpArray --> BGR --> Grayscale --> fin[Thresholded binary]
+initial[pdf2image] --> NpArray --> BGR --> Grayscale --> fin[Thresholded]
 ```
 Then vertical and horizontal filtering is applied, which results in generation of boxes. 
 ![Boxes](/assets/img/boxes.png)
